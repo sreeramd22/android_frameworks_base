@@ -76,6 +76,7 @@ public class ThemeAccentUtils {
         "com.accents.xiaomiorange", // 48
         "com.android.system.theme.charcoalblack", // 49
         "com.android.system.theme.amoledblack", // 50
+        "com.android.system.theme.midnightblue", // 49
     };
 
     // Accents
@@ -135,6 +136,7 @@ public class ThemeAccentUtils {
     private static final String[] DARK_THEMES = {
         "com.android.system.theme.charcoalblack", // 0
         "com.android.system.theme.amoledblack", // 1
+        "com.android.system.theme.midnightblue", // 2
     };
 
     // Check for the dark system theme
