@@ -15,6 +15,7 @@
  */
 package com.android.server.camera;
 
+import android.app.AlertDialog;
 import android.annotation.IntDef;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -38,6 +39,7 @@ import android.os.UserManager;
 import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.Slog;
+import android.view.WindowManager;
 
 import com.android.internal.logging.MetricsLogger;
 import com.android.internal.logging.nano.MetricsProto.MetricsEvent;
@@ -78,6 +80,7 @@ public class CameraServiceProxy extends SystemService
     // Handler message codes
     private static final int MSG_SWITCH_USER = 1;
     private static final int MSG_CAMERA_CLOSED = 1001;
+    private static final int MSG_CAMERA_OPENED = 1002;
 
     private static final int RETRY_DELAY_TIME = 20; //ms
 
@@ -130,7 +133,13 @@ public class CameraServiceProxy extends SystemService
     private boolean mLastNfcPollState = true;
     private final boolean mAllowMediaUid;
 
+    private boolean mScreenOn = true;
+
     private long mClosedEvent;
+
+    private boolean mHasPopupCamera;
+
+    private AlertDialog mAlertDialog;
 
     /**
      * Structure to track camera usage
@@ -190,6 +199,12 @@ public class CameraServiceProxy extends SystemService
                         switchUserLocked(mLastUser);
                     }
                     break;
+                case Intent.ACTION_SCREEN_OFF:
+                    mScreenOn = false;
+                    break;
+                case Intent.ACTION_SCREEN_ON:
+                    mScreenOn = true;
+                    break;
                 default:
                     break; // do nothing
             }
@@ -231,7 +246,7 @@ public class CameraServiceProxy extends SystemService
                        if (SystemClock.elapsedRealtime() - mClosedEvent < CAMERA_EVENT_DELAY_TIME) {
                            mHandler.removeMessages(MSG_CAMERA_CLOSED);
                        }
-                       sendCameraStateIntent("1");
+                       mHandler.sendEmptyMessage(MSG_CAMERA_OPENED);
                    } break;
                    case ICameraServiceProxy.CAMERA_STATE_CLOSED : {
                        mClosedEvent = SystemClock.elapsedRealtime();
@@ -267,6 +282,36 @@ public class CameraServiceProxy extends SystemService
             } break;
             case MSG_CAMERA_CLOSED: {
                 sendCameraStateIntent("0");
+                if (mAlertDialog != null && mAlertDialog.isShowing()) {
+                    mAlertDialog.dismiss();
+                }
+            } break;
+            case MSG_CAMERA_OPENED: {
+                if (mHasPopupCamera) {
+                    if (mAlertDialog == null) {
+                        mAlertDialog = new AlertDialog.Builder(mContext)
+                            .setMessage(com.android.internal.R.string.popup_camera_dialog_message)
+                            .setNegativeButton(com.android.internal.R.string.popup_camera_dialog_no, (dialog, which) -> {
+                                // Go back to home screen
+                                Intent intent = new Intent(Intent.ACTION_MAIN);
+                                intent.addCategory(Intent.CATEGORY_HOME);
+                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                mContext.startActivity(intent);
+                            })
+                            .setPositiveButton(com.android.internal.R.string.popup_camera_dialog_raise, (dialog, which) -> {
+                                // Raise the camera
+                                sendCameraStateIntent("1");
+                            })
+                            .create();
+                        mAlertDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ERROR);
+                        mAlertDialog.setCanceledOnTouchOutside(false);
+                    }
+                    if (!mScreenOn) {
+                        mAlertDialog.show();
+                        break;
+                    }
+                }
+                sendCameraStateIntent("1");
             } break;
             default: {
                 Slog.e(TAG, "CameraServiceProxy error, invalid message: " + msg.what);
@@ -284,12 +329,19 @@ public class CameraServiceProxy extends SystemService
                     " CameraServiceProxy!");
         }
 
+        mHasPopupCamera = mContext.getResources().getBoolean(
+            com.android.internal.R.bool.config_hasPopupCamera);
+
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_USER_ADDED);
         filter.addAction(Intent.ACTION_USER_REMOVED);
         filter.addAction(Intent.ACTION_USER_INFO_CHANGED);
         filter.addAction(Intent.ACTION_MANAGED_PROFILE_ADDED);
         filter.addAction(Intent.ACTION_MANAGED_PROFILE_REMOVED);
+        if(mHasPopupCamera) {
+            filter.addAction(Intent.ACTION_SCREEN_OFF);
+            filter.addAction(Intent.ACTION_SCREEN_ON);
+        }
         mContext.registerReceiver(mIntentReceiver, filter);
 
         publishBinderService(CAMERA_SERVICE_PROXY_BINDER_NAME, mCameraServiceProxy);

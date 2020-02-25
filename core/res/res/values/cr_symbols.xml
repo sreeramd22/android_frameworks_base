@@ -171,4 +171,11 @@
 
   <!-- Whether key handler sends intent when changing slider position -->
   <java-symbol type="string" name="config_alertSliderIntent" />
+
+  <!-- Whether the device has a popup camera -->
+  <java-symbol type="bool" name="config_hasPopupCamera" />
+
+  <java-symbol type="string" name="popup_camera_dialog_message" />
+  <java-symbol type="string" name="popup_camera_dialog_no" />
+  <java-symbol type="string" name="popup_camera_dialog_raise" />
 </resources>

@@ -83,4 +83,7 @@
 
     <!-- Whether key handler sends intent when changing slider position -->
     <string name="config_alertSliderIntent"></string>
+
+    <!-- Whether the device has a popup camera -->
+    <bool name="config_hasPopupCamera">false</bool>
 </resources>
