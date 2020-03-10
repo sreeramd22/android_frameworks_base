@@ -938,6 +938,10 @@ public class StatusBar extends SystemUI implements DemoMode,
         Dependency.get(InitController.class).addPostInitTask(
                 () -> setUpDisableFlags(disabledFlags1, disabledFlags2));
 
+        mUiOffloadThread.submit(() -> {
+            ThemeAccentUtils.checkFODAnimations(mOverlayManager, mLockscreenUserManager.getCurrentUserId());
+        });
+
         final TunerService tunerService = Dependency.get(TunerService.class);
         tunerService.addTunable(this, SCREEN_BRIGHTNESS_MODE);
         tunerService.addTunable(this, STATUS_BAR_BRIGHTNESS_CONTROL);

@@ -152,4 +152,18 @@ public class ThemeAccentUtils {
             e.printStackTrace();
         }
     }
+
+    public static void checkFODAnimations(IOverlayManager om, int userId) {
+        OverlayInfo themeInfo = null;
+        try {
+            themeInfo = om.getOverlayInfo("com.crdroid.fodanimations",
+                    userId);
+            if (themeInfo != null && !themeInfo.isEnabled()) {
+                om.setEnabled("com.crdroid.fodanimations",
+                        true, userId);
+            }
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
 }
